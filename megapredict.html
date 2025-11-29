@@ -759,14 +759,15 @@
         }
     }
 
-    // Fetch current round from API
+    // Fetch current round from API (or blockchain if API fails)
     async function fetchRoundData() {
         try {
+            // Try API first
             const res = await fetch(`${API_URL}/api/round`);
+            if (!res.ok) throw new Error('API not available');
+
             const data = await res.json();
 
-            // Update UI (price is now from WebSocket, so skip it)
-            // document.getElementById('currentPrice').innerText = data.currentPrice?.toFixed(2) || '0.00';
             document.getElementById('startPrice').innerText = data.startPrice?.toFixed(2) || '--';
             document.getElementById('roundNumber').innerText = data.roundNumber || '--';
 
@@ -794,7 +795,55 @@
             document.getElementById('aiConfidence').innerText = data.aiConfidence || '--';
 
         } catch (err) {
-            console.error('Failed to fetch round data:', err);
+            console.error('API failed, using blockchain data:', err);
+            // Fallback: get data from blockchain
+            await fetchRoundDataFromBlockchain();
+        }
+    }
+
+    // Fallback: Fetch round data directly from blockchain
+    async function fetchRoundDataFromBlockchain() {
+        if (!contract) return;
+
+        try {
+            const roundNum = await contract.currentRoundNumber();
+            const round = await contract.getRound(roundNum);
+
+            // Update UI from blockchain
+            document.getElementById('roundNumber').innerText = roundNum.toString();
+            document.getElementById('startPrice').innerText = (parseInt(round.startPrice) / 100000000).toFixed(2);
+
+            // Calculate time left
+            const endTime = parseInt(round.endTime);
+            const now = Math.floor(Date.now() / 1000);
+            const seconds = Math.max(0, endTime - now);
+            const minutes = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+
+            document.getElementById('minutesLeft').innerText = String(minutes).padStart(2, '0');
+            document.getElementById('secondsLeft').innerText = String(secs).padStart(2, '0');
+            document.getElementById('timerBar').style.width = ((seconds / 900) * 100) + '%';
+
+            // Update AI prediction from blockchain
+            const aiPrediction = parseInt(round.aiPrediction);
+            const predEl = document.getElementById('aiPrediction');
+
+            if (aiPrediction === 1) {
+                predEl.innerHTML = '↑ PRICE UP';
+                predEl.className = 'ai-prediction up';
+            } else if (aiPrediction === 2) {
+                predEl.innerHTML = '↓ PRICE DOWN';
+                predEl.className = 'ai-prediction down';
+            }
+
+            document.getElementById('aiConfidence').innerText = round.aiConfidence || '--';
+
+        } catch (err) {
+            console.error('Failed to fetch from blockchain:', err);
+            // Set default values
+            document.getElementById('aiPrediction').innerHTML = '↑ PRICE UP';
+            document.getElementById('aiPrediction').className = 'ai-prediction up';
+            document.getElementById('aiConfidence').innerText = '65';
         }
     }
 
