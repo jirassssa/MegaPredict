@@ -2,6 +2,10 @@
   "version": 2,
   "builds": [
     {
+      "src": "megapredict.html",
+      "use": "@vercel/static"
+    },
+    {
       "src": "server.js",
       "use": "@vercel/node"
     }
@@ -14,6 +18,10 @@
     {
       "src": "/health",
       "dest": "server.js"
+    },
+    {
+      "src": "/",
+      "dest": "megapredict.html"
     },
     {
       "src": "/(.*)",
