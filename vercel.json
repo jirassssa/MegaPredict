@@ -1,31 +1,13 @@
 {
   "version": 2,
-  "builds": [
+  "crons": [
     {
-      "src": "megapredict.html",
-      "use": "@vercel/static"
+      "path": "/api/cron-start",
+      "schedule": "0,15,30,45 * * * *"
     },
     {
-      "src": "server.js",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "server.js"
-    },
-    {
-      "src": "/health",
-      "dest": "server.js"
-    },
-    {
-      "src": "/",
-      "dest": "megapredict.html"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "megapredict.html"
+      "path": "/api/cron-resolve",
+      "schedule": "* * * * *"
     }
   ]
 }
