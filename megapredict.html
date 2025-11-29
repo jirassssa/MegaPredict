@@ -883,15 +883,84 @@
         document.getElementById('aiConfidence').innerText = '--';
     }
 
-    // Set UI for no active round
+    // Mock round data for demo when no blockchain round exists
+    let mockRound = null;
+    let mockRoundStartTime = null;
+
+    function startMockRound() {
+        // Random AI prediction
+        const prediction = Math.random() > 0.5 ? 1 : 2; // 1=UP, 2=DOWN
+        const confidence = Math.floor(Math.random() * 30 + 55); // 55-85%
+
+        mockRound = {
+            number: 1,
+            prediction: prediction,
+            confidence: confidence,
+            startPrice: currentETHPrice || 3000
+        };
+
+        // Start time aligned to 15-min intervals (:00, :15, :30, :45)
+        const now = Date.now();
+        const date = new Date(now);
+        const minutes = date.getMinutes();
+        const nextInterval = Math.ceil(minutes / 15) * 15;
+
+        if (nextInterval === 60) {
+            date.setHours(date.getHours() + 1);
+            date.setMinutes(0);
+        } else {
+            date.setMinutes(nextInterval);
+        }
+        date.setSeconds(0);
+        date.setMilliseconds(0);
+
+        mockRoundStartTime = date.getTime();
+
+        console.log('🎮 Mock round started:', mockRound);
+        updateMockRoundUI();
+    }
+
+    function updateMockRoundUI() {
+        if (!mockRound) return;
+
+        const now = Date.now();
+        const elapsed = now - mockRoundStartTime;
+        const roundDuration = 15 * 60 * 1000; // 15 minutes
+
+        // If round expired, start new one
+        if (elapsed >= roundDuration) {
+            startMockRound();
+            return;
+        }
+
+        const secondsLeft = Math.floor((roundDuration - elapsed) / 1000);
+        const minutes = Math.floor(secondsLeft / 60);
+        const seconds = secondsLeft % 60;
+
+        // Update timer
+        document.getElementById('minutesLeft').innerText = String(minutes).padStart(2, '0');
+        document.getElementById('secondsLeft').innerText = String(seconds).padStart(2, '0');
+        document.getElementById('timerBar').style.width = ((secondsLeft / 900) * 100) + '%';
+
+        // Update AI prediction
+        const predEl = document.getElementById('aiPrediction');
+        if (mockRound.prediction === 1) {
+            predEl.innerHTML = '↑ PRICE UP';
+            predEl.className = 'ai-prediction up';
+        } else {
+            predEl.innerHTML = '↓ PRICE DOWN';
+            predEl.className = 'ai-prediction down';
+        }
+
+        document.getElementById('aiConfidence').innerText = mockRound.confidence + '%';
+        document.getElementById('roundNumber').innerText = mockRound.number;
+        document.getElementById('startPrice').innerText = mockRound.startPrice.toFixed(2);
+    }
+
+    // Set UI for no active round (use mock round instead)
     function setNoRoundUI() {
-        document.getElementById('aiPrediction').innerHTML = 'No active round yet';
-        document.getElementById('aiPrediction').className = 'ai-prediction up';
-        document.getElementById('minutesLeft').innerText = '00';
-        document.getElementById('secondsLeft').innerText = '00';
-        document.getElementById('roundNumber').innerText = 'Waiting...';
-        document.getElementById('startPrice').innerText = '--';
-        document.getElementById('aiConfidence').innerText = '--';
+        console.log('⚠️ No blockchain round, starting mock round...');
+        startMockRound();
     }
 
     // Fetch blockchain data
@@ -1195,6 +1264,13 @@
     // Fetch round data every 2 seconds
     fetchRoundData();
     setInterval(fetchRoundData, 2000);
+
+    // Update mock round UI every second
+    setInterval(() => {
+        if (mockRound) {
+            updateMockRoundUI();
+        }
+    }, 1000);
 
     // Update button states every second
     setInterval(updateButtonStates, 1000);
