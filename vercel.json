@@ -1,13 +1,3 @@
 {
-  "version": 2,
-  "crons": [
-    {
-      "path": "/api/cron-start",
-      "schedule": "0,15,30,45 * * * *"
-    },
-    {
-      "path": "/api/cron-resolve",
-      "schedule": "* * * * *"
-    }
-  ]
+  "version": 2
 }
