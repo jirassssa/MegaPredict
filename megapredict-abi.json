@@ -1,0 +1,285 @@
+[
+  {
+    "inputs": [],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "roundNumber",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "followAI",
+        "type": "bool"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "BetPlaced",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "roundNumber",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "int256",
+        "name": "endPrice",
+        "type": "int256"
+      }
+    ],
+    "name": "RoundResolved",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "roundNumber",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "int256",
+        "name": "startPrice",
+        "type": "int256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint8",
+        "name": "aiPrediction",
+        "type": "uint8"
+      }
+    ],
+    "name": "RoundStarted",
+    "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "currentRoundNumber",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_roundNumber",
+        "type": "uint256"
+      }
+    ],
+    "name": "getRound",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "startTime",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "endTime",
+        "type": "uint256"
+      },
+      {
+        "internalType": "int256",
+        "name": "startPrice",
+        "type": "int256"
+      },
+      {
+        "internalType": "int256",
+        "name": "endPrice",
+        "type": "int256"
+      },
+      {
+        "internalType": "uint8",
+        "name": "aiPrediction",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint256",
+        "name": "aiConfidence",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "resolved",
+        "type": "bool"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalFollowAI",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalAgainstAI",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "rewardAmount",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "owner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bool",
+        "name": "_followAI",
+        "type": "bool"
+      }
+    ],
+    "name": "placeBet",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "int256",
+        "name": "_endPrice",
+        "type": "int256"
+      }
+    ],
+    "name": "resolveRound",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "rounds",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "startTime",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "endTime",
+        "type": "uint256"
+      },
+      {
+        "internalType": "int256",
+        "name": "startPrice",
+        "type": "int256"
+      },
+      {
+        "internalType": "int256",
+        "name": "endPrice",
+        "type": "int256"
+      },
+      {
+        "internalType": "uint8",
+        "name": "aiPrediction",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint256",
+        "name": "aiConfidence",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "resolved",
+        "type": "bool"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalFollowAI",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalAgainstAI",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "rewardAmount",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "int256",
+        "name": "_startPrice",
+        "type": "int256"
+      },
+      {
+        "internalType": "uint8",
+        "name": "_aiPrediction",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_aiConfidence",
+        "type": "uint256"
+      }
+    ],
+    "name": "startRound",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+]

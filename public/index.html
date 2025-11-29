@@ -702,7 +702,7 @@
 </div>
 
 <script>
-    const CONTRACT_ADDRESS = "0xf6A3DFB7D4D152AFCFfDf33504D57F9335E76875";
+    const CONTRACT_ADDRESS = "0x54Df896e6Dbf3A5e082aBaBc26e7884b14052426";
     const RPC_URL = "https://timothy.megaeth.com/rpc";
     const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
     const CHAIN_ID = 6343;
@@ -711,11 +711,10 @@
     const abi = [
         "function placeBet(bool followAI) external payable",
         "function startRound(int256 _startPrice, uint8 _aiPrediction, uint256 _aiConfidence) external",
-        "function resolveRound(uint256 _roundNumber, int256 _endPrice) external",
-        "function claim(uint256 _roundNumber) external",
+        "function resolveRound(int256 _endPrice) external",
         "function currentRoundNumber() view returns (uint256)",
         "function getRound(uint256) view returns (uint256 startTime, uint256 endTime, int256 startPrice, int256 endPrice, uint8 aiPrediction, uint256 aiConfidence, bool resolved, uint256 totalFollowAI, uint256 totalAgainstAI, uint256 rewardAmount)",
-        "function getPayoutMultiplier(uint256, bool) view returns (uint256)"
+        "function owner() view returns (address)"
     ];
 
     let readOnlyContract; // Read-only contract (no wallet needed)
