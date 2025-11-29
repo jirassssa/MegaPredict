@@ -815,8 +815,8 @@
     // Fallback: Fetch round data directly from blockchain
     async function fetchRoundDataFromBlockchain() {
         if (!readOnlyContract) {
-            console.error('❌ Read-only contract not initialized');
-            setDefaultUI();
+            console.log('⚠️ Read-only contract not initialized, using mock round');
+            setNoRoundUI();
             return;
         }
 
@@ -872,15 +872,10 @@
         }
     }
 
-    // Set default UI (error or loading state)
+    // Set default UI (error or loading state) - use mock round instead
     function setDefaultUI() {
-        document.getElementById('aiPrediction').innerHTML = 'Error loading AI';
-        document.getElementById('aiPrediction').className = 'ai-prediction up';
-        document.getElementById('minutesLeft').innerText = '00';
-        document.getElementById('secondsLeft').innerText = '00';
-        document.getElementById('roundNumber').innerText = '--';
-        document.getElementById('startPrice').innerText = '--';
-        document.getElementById('aiConfidence').innerText = '--';
+        console.log('⚠️ Error loading blockchain data, starting mock round...');
+        setNoRoundUI();
     }
 
     // Mock round data for demo when no blockchain round exists
@@ -1040,11 +1035,16 @@
         const againstBtn = document.getElementById('againstBtn');
 
         if (followBtn && againstBtn) {
-            followBtn.disabled = !allowed || !contract;
-            againstBtn.disabled = !allowed || !contract;
+            // Enable buttons if: (time allowed AND have contract) OR (mock round active)
+            const enableButtons = (allowed && contract) || (allowed && mockRound);
 
-            if (!allowed && totalSeconds > 0 && contract) {
+            followBtn.disabled = !enableButtons;
+            againstBtn.disabled = !enableButtons;
+
+            if (!allowed && totalSeconds > 0) {
                 document.getElementById('status').innerText = '⏰ Predictions closed - Less than 1:30 remaining';
+            } else if (mockRound && !contract) {
+                document.getElementById('status').innerText = '🎮 Demo Mode - Connect wallet to place real bets';
             }
         }
     }
@@ -1097,6 +1097,29 @@
 
     // Place Bet
     async function placeBet(followAI) {
+        // Demo mode: Just show prediction without blockchain
+        if (!contract && mockRound) {
+            const side = followAI ? 'Follow AI' : 'Against AI';
+            const prediction = mockRound.prediction === 1 ? 'UP' : 'DOWN';
+
+            document.getElementById('status').innerText = `🎮 Demo: You chose ${side} (AI predicts ${prediction})`;
+
+            // Show badge
+            if (followAI) {
+                document.getElementById('followUserBadge').style.display = 'block';
+                document.getElementById('againstUserBadge').style.display = 'none';
+            } else {
+                document.getElementById('followUserBadge').style.display = 'none';
+                document.getElementById('againstUserBadge').style.display = 'block';
+            }
+
+            setTimeout(() => {
+                document.getElementById('status').innerText = '🎮 Demo Mode - Connect wallet to place real bets';
+            }, 3000);
+
+            return;
+        }
+
         if (!contract) return alert("Connect wallet first!");
 
         if (!isBettingAllowed()) {
