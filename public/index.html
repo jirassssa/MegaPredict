@@ -702,11 +702,11 @@
 </div>
 
 <script>
-    const CONTRACT_ADDRESS = "0xf6A3DFB7D4D152AFCFfDf33504D57F9335E76875"; // AlloraPulse on Timothy Testnet
-    // Auto-detect API URL (use relative path for Vercel, localhost for local dev)
+    const CONTRACT_ADDRESS = "0xf6A3DFB7D4D152AFCFfDf33504D57F9335E76875";
+    const RPC_URL = "https://timothy.megaeth.com/rpc";
     const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
     const CHAIN_ID = 6343;
-    const BET_AMOUNT = "0.001"; // 0.001 ETH
+    const BET_AMOUNT = "0.001";
 
     const abi = [
         "function placeBet(bool followAI) external payable",
@@ -718,12 +718,24 @@
         "function getPayoutMultiplier(uint256, bool) view returns (uint256)"
     ];
 
-    let provider, signer, contract;
+    let readOnlyContract; // Read-only contract (no wallet needed)
+    let provider, signer, contract; // Signed contract (after wallet connect)
     let updateInterval;
-    let allHistory = []; // Store ALL rounds
+    let allHistory = [];
     let showingAll = false;
     let currentETHPrice = 0;
     let binanceWS = null;
+
+    // Initialize read-only contract on page load
+    async function initReadOnly() {
+        try {
+            const readOnlyProvider = new ethers.providers.JsonRpcProvider(RPC_URL);
+            readOnlyContract = new ethers.Contract(CONTRACT_ADDRESS, abi, readOnlyProvider);
+            console.log('✅ Read-only contract initialized');
+        } catch (err) {
+            console.error('❌ Failed to initialize read-only contract:', err);
+        }
+    }
 
     // Connect to Binance WebSocket for real-time price
     function connectBinanceWebSocket() {
@@ -803,31 +815,48 @@
 
     // Fallback: Fetch round data directly from blockchain
     async function fetchRoundDataFromBlockchain() {
-        if (!contract) return;
+        if (!readOnlyContract) {
+            console.error('❌ Read-only contract not initialized');
+            setDefaultUI();
+            return;
+        }
 
         try {
-            const roundNum = await contract.currentRoundNumber();
-            const round = await contract.getRound(roundNum);
+            const roundNum = await readOnlyContract.currentRoundNumber();
+            const roundNumInt = Number(roundNum);
 
-            // Update UI from blockchain
-            document.getElementById('roundNumber').innerText = roundNum.toString();
-            document.getElementById('startPrice').innerText = (parseInt(round.startPrice) / 100000000).toFixed(2);
+            if (roundNumInt === 0) {
+                console.log('⚠️ No rounds started yet');
+                setNoRoundUI();
+                return;
+            }
+
+            const round = await readOnlyContract.getRound(roundNum);
+
+            // Parse data (ethers v5 returns arrays for structs)
+            const startTime = Number(round[0]);
+            const endTime = Number(round[1]);
+            const startPrice = Number(round[2]) / 100000000; // 8 decimals
+            const endPrice = Number(round[3]) / 100000000;
+            const aiPrediction = Number(round[4]);
+            const aiConfidence = Number(round[5]);
+
+            // Update UI
+            document.getElementById('roundNumber').innerText = roundNumInt;
+            document.getElementById('startPrice').innerText = startPrice.toFixed(2);
 
             // Calculate time left
-            const endTime = parseInt(round.endTime);
             const now = Math.floor(Date.now() / 1000);
-            const seconds = Math.max(0, endTime - now);
-            const minutes = Math.floor(seconds / 60);
-            const secs = seconds % 60;
+            const secondsLeft = Math.max(0, endTime - now);
+            const minutes = Math.floor(secondsLeft / 60);
+            const seconds = secondsLeft % 60;
 
             document.getElementById('minutesLeft').innerText = String(minutes).padStart(2, '0');
-            document.getElementById('secondsLeft').innerText = String(secs).padStart(2, '0');
-            document.getElementById('timerBar').style.width = ((seconds / 900) * 100) + '%';
+            document.getElementById('secondsLeft').innerText = String(seconds).padStart(2, '0');
+            document.getElementById('timerBar').style.width = ((secondsLeft / 900) * 100) + '%';
 
-            // Update AI prediction from blockchain
-            const aiPrediction = parseInt(round.aiPrediction);
+            // Update AI prediction
             const predEl = document.getElementById('aiPrediction');
-
             if (aiPrediction === 1) {
                 predEl.innerHTML = '↑ PRICE UP';
                 predEl.className = 'ai-prediction up';
@@ -836,15 +865,34 @@
                 predEl.className = 'ai-prediction down';
             }
 
-            document.getElementById('aiConfidence').innerText = round.aiConfidence || '--';
+            document.getElementById('aiConfidence').innerText = aiConfidence || '--';
 
         } catch (err) {
-            console.error('Failed to fetch from blockchain:', err);
-            // Set default values
-            document.getElementById('aiPrediction').innerHTML = '↑ PRICE UP';
-            document.getElementById('aiPrediction').className = 'ai-prediction up';
-            document.getElementById('aiConfidence').innerText = '65';
+            console.error('❌ Blockchain fetch failed:', err);
+            setDefaultUI();
         }
+    }
+
+    // Set default UI (error or loading state)
+    function setDefaultUI() {
+        document.getElementById('aiPrediction').innerHTML = 'Error loading AI';
+        document.getElementById('aiPrediction').className = 'ai-prediction up';
+        document.getElementById('minutesLeft').innerText = '00';
+        document.getElementById('secondsLeft').innerText = '00';
+        document.getElementById('roundNumber').innerText = '--';
+        document.getElementById('startPrice').innerText = '--';
+        document.getElementById('aiConfidence').innerText = '--';
+    }
+
+    // Set UI for no active round
+    function setNoRoundUI() {
+        document.getElementById('aiPrediction').innerHTML = 'No active round yet';
+        document.getElementById('aiPrediction').className = 'ai-prediction up';
+        document.getElementById('minutesLeft').innerText = '00';
+        document.getElementById('secondsLeft').innerText = '00';
+        document.getElementById('roundNumber').innerText = 'Waiting...';
+        document.getElementById('startPrice').innerText = '--';
+        document.getElementById('aiConfidence').innerText = '--';
     }
 
     // Fetch blockchain data
@@ -1135,6 +1183,9 @@
             fetchContractData();
         }
     });
+
+    // Initialize read-only contract (no wallet needed)
+    initReadOnly();
 
     // Connect to Binance WebSocket for real-time price
     connectBinanceWebSocket();
