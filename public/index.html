@@ -722,6 +722,42 @@
     let updateInterval;
     let allHistory = []; // Store ALL rounds
     let showingAll = false;
+    let currentETHPrice = 0;
+    let binanceWS = null;
+
+    // Connect to Binance WebSocket for real-time price
+    function connectBinanceWebSocket() {
+        binanceWS = new WebSocket('wss://stream.binance.com:9443/ws/ethusdt@trade');
+
+        binanceWS.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            currentETHPrice = parseFloat(data.p);
+            document.getElementById('currentPrice').innerText = currentETHPrice.toFixed(2);
+        };
+
+        binanceWS.onerror = (error) => {
+            console.error('Binance WebSocket error:', error);
+            // Fallback to REST API
+            fetchPriceFromREST();
+        };
+
+        binanceWS.onclose = () => {
+            console.log('Binance WebSocket closed, reconnecting in 5s...');
+            setTimeout(connectBinanceWebSocket, 5000);
+        };
+    }
+
+    // Fallback: Fetch price from Binance REST API
+    async function fetchPriceFromREST() {
+        try {
+            const res = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT');
+            const data = await res.json();
+            currentETHPrice = parseFloat(data.price);
+            document.getElementById('currentPrice').innerText = currentETHPrice.toFixed(2);
+        } catch (err) {
+            console.error('Failed to fetch price from REST:', err);
+        }
+    }
 
     // Fetch current round from API
     async function fetchRoundData() {
@@ -729,8 +765,8 @@
             const res = await fetch(`${API_URL}/api/round`);
             const data = await res.json();
 
-            // Update UI
-            document.getElementById('currentPrice').innerText = data.currentPrice?.toFixed(2) || '0.00';
+            // Update UI (price is now from WebSocket, so skip it)
+            // document.getElementById('currentPrice').innerText = data.currentPrice?.toFixed(2) || '0.00';
             document.getElementById('startPrice').innerText = data.startPrice?.toFixed(2) || '--';
             document.getElementById('roundNumber').innerText = data.roundNumber || '--';
 
@@ -1050,6 +1086,9 @@
             fetchContractData();
         }
     });
+
+    // Connect to Binance WebSocket for real-time price
+    connectBinanceWebSocket();
 
     // Load history on startup
     loadHistory();
