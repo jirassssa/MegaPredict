@@ -1,0 +1,41 @@
+# 📄 BMAD v.6: MegaPulse - High-Frequency Prediction Market
+**Project Type:** DeFi / Micro-Betting
+**Network:** MegaETH Timothy Testnet (Chain ID: 6343)
+**Objective:** Create a fast-paced "15-Second Bitcoin Price Prediction" game to demonstrate MegaETH's real-time settlement capabilities.
+
+## 1. System Architecture
+The system consists of a smart contract acting as the betting pool and a frontend that simulates a price oracle for the MVP demo.
+
+### 1.1 Tech Stack
+* **Blockchain:** MegaETH Timothy Testnet
+    * **RPC:** `https://timothy.megaeth.com/rpc`
+    * **Chain ID:** `6343` (Hex: `0x18C7`)
+    * **Currency:** ETH
+    * **Gas Note:** Must hardcode gas limit to `30,000,000` for transactions to pass on Timothy.
+* **Smart Contract:** Solidity ^0.8.18 (Lock funds, accept bets, payout winners).
+* **Frontend:** HTML5 + Ethers.js v5.7.2 + Lightweight Charts (for BTC price visualization).
+
+### 1.2 Core Logic (Round-Based)
+1.  **Start Round:** The contract opens a round for 15 seconds. Current BTC price is recorded (Mock Price).
+2.  **Betting:** Users bet ETH on whether the price will go **UP** or **DOWN**.
+3.  **Resolution:** After 15 seconds, the "End Price" is submitted.
+    * If End > Start: UP bettors win.
+    * If End < Start: DOWN bettors win.
+    * Winners share the loser's pool (minus a small fee).
+    * **MegaETH Advantage:** Payouts happen *instantly* in the same block as resolution.
+
+## 2. Smart Contract Requirements (MockOracle Approach)
+Since this is a testnet without Chainlink:
+* Create a function `resolveRound(int256 endPrice)` that can be called by the owner (or the frontend for the demo) to close the round and distribute funds.
+* Use `mapping(uint256 => Round)` to store round history.
+
+## 3. Frontend Requirements
+* **Real-time Chart:** Fetch mock BTC price or real API price every second.
+* **Countdown Timer:** Visual circle counting down 15 seconds.
+* **Interaction:** "Bet UP" (Green) and "Bet DOWN" (Red) buttons.
+* **Visuals:** Cyberpunk/Neon aesthetic suitable for a fast crypto game.
+
+## 4. Business Value
+Demonstrates that MegaETH can handle:
+1.  High-frequency state changes (Rounds opening/closing every 15s).
+2.  Immediate liquidity settlement (No waiting for withdrawal periods).

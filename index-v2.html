@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MegaPulse V2 - BTC Prediction Market</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            color: #fff;
+            font-family: 'Inter', -apple-system, sans-serif;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #00ff88, #00d4ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .connect-btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #00ff88, #00d4ff);
+            border: none;
+            border-radius: 12px;
+            color: #0a0e27;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .connect-btn:hover {
+            transform: scale(1.05);
+        }
+
+        /* Main Grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        /* Chart Section */
+        .chart-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .price-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .current-price {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #00ff88;
+        }
+
+        .price-label {
+            font-size: 0.9rem;
+            color: #888;
+            margin-bottom: 5px;
+        }
+
+        #chart {
+            width: 100%;
+            height: 300px;
+            border-radius: 12px;
+            background: #0f1420;
+            margin-bottom: 20px;
+        }
+
+        /* Betting Section */
+        .betting-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 24px;
+            backdrop-filter: blur(10px);
+        }
+
+        .round-info {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .round-label {
+            color: #888;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+
+        .round-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #00ff88;
+        }
+
+        /* Timer */
+        .timer-section {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .timer-display {
+            font-size: 3rem;
+            font-weight: 800;
+            color: #00d4ff;
+            margin: 10px 0;
+        }
+
+        .timer-bar {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .timer-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff88, #00d4ff);
+            transition: width 1s linear;
+        }
+
+        /* Prize Pool */
+        .prize-pool {
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.1), rgba(0, 212, 255, 0.1));
+            border: 2px solid rgba(0, 255, 136, 0.3);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .pool-label {
+            color: #888;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+        }
+
+        .pool-amount {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #00ff88, #00d4ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Pool Distribution */
+        .pool-distribution {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .pool-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .pool-card.up {
+            border: 2px solid #00ff88;
+        }
+
+        .pool-card.down {
+            border: 2px solid #ff0055;
+        }
+
+        .pool-side {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .pool-side.up { color: #00ff88; }
+        .pool-side.down { color: #ff0055; }
+
+        .pool-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .payout-multiplier {
+            font-size: 0.85rem;
+            color: #888;
+        }
+
+        /* Betting Buttons */
+        .betting-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .bet-btn {
+            padding: 20px;
+            border: none;
+            border-radius: 16px;
+            font-size: 1.2rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .bet-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        .bet-btn.up {
+            background: linear-gradient(135deg, #00ff88, #00d4a0);
+            color: #0a0e27;
+        }
+
+        .bet-btn.down {
+            background: linear-gradient(135deg, #ff0055, #ff3366);
+            color: #fff;
+        }
+
+        .bet-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Status */
+        .status-log {
+            text-align: center;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            font-size: 0.9rem;
+            color: #888;
+            margin-bottom: 16px;
+        }
+
+        /* Admin Panel */
+        .admin-panel {
+            background: rgba(255, 100, 100, 0.1);
+            border: 1px dashed rgba(255, 100, 100, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 20px;
+        }
+
+        .admin-panel h4 {
+            font-size: 0.9rem;
+            color: #ff6666;
+            margin-bottom: 10px;
+        }
+
+        .admin-btn {
+            width: 100%;
+            padding: 12px;
+            background: #ff4444;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .admin-btn:hover {
+            background: #ff6666;
+        }
+
+        /* Responsive */
+        @media (max-width: 968px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Header -->
+    <div class="header">
+        <div class="logo">⚡ MegaPulse</div>
+        <button class="connect-btn" id="connectBtn">Connect Wallet</button>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-grid">
+        <!-- Chart Section -->
+        <div class="chart-section">
+            <div class="price-header">
+                <div>
+                    <div class="price-label">BTC/USD</div>
+                    <div class="current-price">$<span id="btcPrice">95,000.00</span></div>
+                </div>
+            </div>
+            <div id="chart"></div>
+        </div>
+
+        <!-- Betting Section -->
+        <div class="betting-section">
+            <div class="round-info">
+                <div class="round-label">Current Round</div>
+                <div class="round-number">#<span id="roundNumber">1</span></div>
+            </div>
+
+            <div class="timer-section">
+                <div class="round-label">Round Ends In</div>
+                <div class="timer-display"><span id="timeLeft">15</span>s</div>
+                <div class="timer-bar">
+                    <div class="timer-fill" id="timerBar"></div>
+                </div>
+            </div>
+
+            <div class="prize-pool">
+                <div class="pool-label">💎 PRIZE POOL</div>
+                <div class="pool-amount"><span id="totalPool">0.00</span> ETH</div>
+            </div>
+
+            <div class="pool-distribution">
+                <div class="pool-card up">
+                    <div class="pool-side up">↑ UP</div>
+                    <div class="pool-value"><span id="upPool">0.00</span> ETH</div>
+                    <div class="payout-multiplier"><span id="upMultiplier">0.00</span>x Payout</div>
+                </div>
+                <div class="pool-card down">
+                    <div class="pool-side down">↓ DOWN</div>
+                    <div class="pool-value"><span id="downPool">0.00</span> ETH</div>
+                    <div class="payout-multiplier"><span id="downMultiplier">0.00</span>x Payout</div>
+                </div>
+            </div>
+
+            <div class="betting-buttons">
+                <button class="bet-btn up" onclick="placeBet(true)">
+                    ↑ BET UP
+                </button>
+                <button class="bet-btn down" onclick="placeBet(false)">
+                    ↓ BET DOWN
+                </button>
+            </div>
+
+            <div class="status-log" id="statusLog">
+                Connect your wallet to start playing
+            </div>
+
+            <!-- Admin Panel -->
+            <div class="admin-panel">
+                <h4>⚙️ Demo Controls</h4>
+                <button class="admin-btn" onclick="resolveRound()">Force Resolve Round</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // CONFIGURATION
+    const CONTRACT_ADDRESS = "0xb0c50285b255007e0465e54a80bbD59E455c0ac1"; // MegaPulse V1 (working) on Timothy Testnet
+    const CHAIN_ID = 6343;
+    const RPC_URL = "https://timothy.megaeth.com/rpc";
+    const BET_AMOUNT = "0.001"; // 0.001 ETH per bet
+
+    // ABI for MegaPulse (V1 compatible)
+    const abi = [
+        "function placeBet(bool isUp) external payable",
+        "function executeRound(int256 _endPrice) external",
+        "function claim(uint256 roundId) external",
+        "function currentRoundIndex() view returns (uint256)",
+        "function rounds(uint256) view returns (uint256 startTimestamp, int256 startPrice, int256 endPrice, bool resolved, uint256 totalUpPool, uint256 totalDownPool)",
+        "event BetPlaced(uint256 indexed roundId, address indexed user, uint8 position, uint256 amount)",
+        "event RoundEnded(uint256 indexed roundId, int256 endPrice)"
+    ];
+
+    let provider, signer, contract;
+    let currentPrice = 95000.00;
+    let timeLeft = 15;
+    let currentRound = 1;
+
+    // Chart Setup
+    const chartContainer = document.getElementById('chart');
+    const chart = LightweightCharts.createChart(chartContainer, {
+        layout: { background: { color: '#0f1420' }, textColor: '#888' },
+        grid: { vertLines: { color: '#1a1f2e' }, horzLines: { color: '#1a1f2e' } },
+        height: 300,
+    });
+    const lineSeries = chart.addLineSeries({
+        color: '#00d4ff',
+        lineWidth: 2
+    });
+
+    // Price Movement Simulation
+    setInterval(() => {
+        const change = (Math.random() - 0.5) * 100;
+        currentPrice += change;
+        document.getElementById('btcPrice').innerText = currentPrice.toFixed(2);
+
+        lineSeries.update({
+            time: Math.floor(Date.now() / 1000),
+            value: currentPrice
+        });
+    }, 1000);
+
+    // Timer Loop
+    setInterval(() => {
+        if(timeLeft > 0) {
+            timeLeft--;
+            document.getElementById('timeLeft').innerText = timeLeft;
+            document.getElementById('timerBar').style.width = (timeLeft / 15 * 100) + "%";
+        } else {
+            document.getElementById('statusLog').innerText = "⏰ Round ending... waiting for resolution";
+        }
+    }, 1000);
+
+    // Connect Wallet
+    async function connect() {
+        if (!window.ethereum) return alert("Install MetaMask");
+
+        try {
+            await window.ethereum.request({ method: 'eth_requestAccounts' });
+
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: '0x18C7' }],
+                });
+            } catch (switchError) {
+                if (switchError.code === 4902) {
+                    await window.ethereum.request({
+                        method: 'wallet_addEthereumChain',
+                        params: [{
+                            chainId: '0x18C7',
+                            chainName: 'MegaETH Timothy Testnet',
+                            nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
+                            rpcUrls: ['https://timothy.megaeth.com/rpc'],
+                            blockExplorerUrls: ['https://megaeth-testnet-v2.blockscout.com']
+                        }]
+                    });
+                }
+            }
+
+            provider = new ethers.providers.Web3Provider(window.ethereum);
+            signer = provider.getSigner();
+            contract = new ethers.Contract(CONTRACT_ADDRESS, abi, signer);
+
+            const address = await signer.getAddress();
+            document.getElementById('connectBtn').innerText = address.slice(0,6) + "..." + address.slice(-4);
+            document.getElementById('statusLog').innerText = "✅ Connected! Place your bet";
+
+            // Load current round data
+            await updateRoundData();
+
+        } catch (error) {
+            console.error(error);
+            alert("Connection failed");
+        }
+    }
+
+    // Update Round Data
+    async function updateRoundData() {
+        if (!contract) return;
+
+        try {
+            const roundId = await contract.currentRoundIndex();
+            currentRound = roundId.toNumber();
+            document.getElementById('roundNumber').innerText = currentRound;
+
+            const round = await contract.rounds(currentRound);
+            const upPool = ethers.utils.formatEther(round.totalUpPool);
+            const downPool = ethers.utils.formatEther(round.totalDownPool);
+            const total = parseFloat(upPool) + parseFloat(downPool);
+
+            document.getElementById('upPool').innerText = parseFloat(upPool).toFixed(4);
+            document.getElementById('downPool').innerText = parseFloat(downPool).toFixed(4);
+            document.getElementById('totalPool').innerText = total.toFixed(4);
+
+            // Calculate multipliers (98% payout after 2% fee)
+            const feeRate = 0.98;
+            const upPoolNum = parseFloat(upPool);
+            const downPoolNum = parseFloat(downPool);
+            const totalAfterFee = total * feeRate;
+
+            const upMultiplier = upPoolNum > 0 ? (totalAfterFee / upPoolNum) : 0;
+            const downMultiplier = downPoolNum > 0 ? (totalAfterFee / downPoolNum) : 0;
+
+            document.getElementById('upMultiplier').innerText = upMultiplier.toFixed(2);
+            document.getElementById('downMultiplier').innerText = downMultiplier.toFixed(2);
+
+        } catch (err) {
+            console.error("Error updating round data:", err);
+        }
+    }
+
+    // Place Bet
+    async function placeBet(isUp) {
+        if (!contract) return alert("Connect Wallet first!");
+
+        try {
+            document.getElementById('statusLog').innerText = "📤 Sending bet...";
+
+            const tx = await contract.placeBet(isUp, {
+                value: ethers.utils.parseEther(BET_AMOUNT),
+                gasLimit: 30000000
+            });
+
+            document.getElementById('statusLog').innerText = "⏳ Confirming...";
+            await tx.wait();
+
+            document.getElementById('statusLog').innerText = `✅ Bet placed! ${isUp ? '↑' : '↓'}`;
+            await updateRoundData();
+
+        } catch (err) {
+            console.error(err);
+            document.getElementById('statusLog').innerText = "❌ " + err.message.split('(')[0];
+        }
+    }
+
+    // Resolve Round
+    async function resolveRound() {
+        if (!contract) return alert("Connect wallet first");
+
+        try {
+            const priceInt = Math.floor(currentPrice * 100000000);
+
+            document.getElementById('statusLog').innerText = "🔄 Resolving round...";
+            const tx = await contract.executeRound(priceInt, {
+                gasLimit: 30000000
+            });
+
+            await tx.wait();
+
+            document.getElementById('statusLog').innerText = "✅ Round resolved! New round started";
+            timeLeft = 15;
+
+            await updateRoundData();
+
+        } catch (err) {
+            console.error(err);
+            document.getElementById('statusLog').innerText = "❌ Error resolving";
+        }
+    }
+
+    // Auto-refresh round data
+    setInterval(() => {
+        if (contract) updateRoundData();
+    }, 5000);
+
+    document.getElementById('connectBtn').onclick = connect;
+</script>
+
+</body>
+</html>

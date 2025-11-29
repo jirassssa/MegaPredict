@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MegaPulse - 15s Prediction</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+    <style>
+        body { background: #0b0b0f; color: #fff; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; }
+        .container { max-width: 600px; width: 100%; padding: 20px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .price-display { font-size: 3rem; font-weight: bold; color: #fff; text-shadow: 0 0 20px rgba(255,255,255,0.2); text-align: center; margin: 20px 0; }
+        .timer-bar { height: 4px; background: #333; width: 100%; border-radius: 2px; overflow: hidden; margin-bottom: 20px; }
+        .timer-fill { height: 100%; background: #00ff88; width: 100%; transition: width 1s linear; }
+        
+        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        button { border: none; padding: 20px; font-size: 1.5rem; font-weight: bold; cursor: pointer; border-radius: 12px; transition: 0.2s; color: #000; }
+        .btn-up { background: #00ff88; box-shadow: 0 0 20px rgba(0,255,136,0.3); }
+        .btn-down { background: #ff0055; box-shadow: 0 0 20px rgba(255,0,85,0.3); }
+        .btn-up:hover { transform: scale(1.02); } .btn-down:hover { transform: scale(1.02); }
+        
+        #chart { width: 100%; height: 200px; background: #111; border-radius: 12px; margin-bottom: 20px; }
+        .status { text-align: center; color: #888; margin-top: 10px; font-size: 0.9rem; }
+        
+        /* Admin controls for Demo */
+        .admin-panel { margin-top: 30px; border-top: 1px solid #333; padding-top: 10px; opacity: 0.5; font-size: 0.8rem; }
+        .admin-panel:hover { opacity: 1; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h2>⚡ MegaPulse</h2>
+        <button id="connectBtn" style="padding: 10px; font-size: 1rem; background: #333; color: white;">Connect Wallet</button>
+    </div>
+
+    <div id="chart"></div>
+
+    <div class="price-display">$<span id="btcPrice">95,000.00</span></div>
+    
+    <div class="timer-bar"><div class="timer-fill" id="timerBar"></div></div>
+    <div style="text-align: center; margin-bottom: 10px;">Round Ends in: <span id="timeLeft">15</span>s</div>
+
+    <div class="controls">
+        <button class="btn-up" onclick="placeBet(true)">BET UP 🚀</button>
+        <button class="btn-down" onclick="placeBet(false)">BET DOWN 🔻</button>
+    </div>
+
+    <div class="status" id="statusLog">Waiting for connection...</div>
+
+    <div class="admin-panel">
+        <p>Demo Control: Since there is no backend server, click "Force Resolve" to end round manually if timer stuck.</p>
+        <button onclick="resolveRound()" style="background: #444; color: #fff; font-size: 0.8rem; padding: 5px;">Force Resolve Round</button>
+    </div>
+</div>
+
+<script>
+    // CONFIGURATION
+    const CONTRACT_ADDRESS = "0xb0c50285b255007e0465e54a80bbD59E455c0ac1"; // Deployed on MegaETH Timothy Testnet
+    const CHAIN_ID = 6343; // Timothy Testnet
+    const RPC_URL = "https://timothy.megaeth.com/rpc";
+
+    // ABI
+    const abi = [
+        "function placeBet(bool isUp) external payable",
+        "function executeRound(int256 _endPrice) external",
+        "function currentRoundIndex() view returns (uint256)",
+        "event RoundEnded(uint256 indexed roundId, int256 endPrice)"
+    ];
+
+    let provider, signer, contract;
+    let currentPrice = 95000.00;
+    let timeLeft = 15;
+
+    // Chart Setup
+    const chartContainer = document.getElementById('chart');
+    const chart = LightweightCharts.createChart(chartContainer, {
+        layout: { background: { color: '#111' }, textColor: '#DDD' },
+        grid: { vertLines: { color: '#222' }, horzLines: { color: '#222' } },
+        height: 200,
+    });
+    const lineSeries = chart.addLineSeries({ color: '#2962FF' });
+
+    // 1. Fake Price Movement Loop
+    setInterval(() => {
+        const change = (Math.random() - 0.5) * 50; // Random +/- 25
+        currentPrice += change;
+        document.getElementById('btcPrice').innerText = currentPrice.toFixed(2);
+        
+        lineSeries.update({
+            time: Math.floor(Date.now() / 1000),
+            value: currentPrice
+        });
+    }, 1000);
+
+    // 2. Timer Loop
+    setInterval(() => {
+        if(timeLeft > 0) {
+            timeLeft--;
+            document.getElementById('timeLeft').innerText = timeLeft;
+            document.getElementById('timerBar').style.width = (timeLeft / 15 * 100) + "%";
+        } else {
+            // Auto resolve in demo (usually strictly backend)
+            // resolveRound(); 
+            document.getElementById('statusLog').innerText = "Round Ending... Processing on MegaETH";
+        }
+    }, 1000);
+
+    async function connect() {
+        if (!window.ethereum) return alert("Install MetaMask");
+
+        try {
+            // Request account access
+            await window.ethereum.request({ method: 'eth_requestAccounts' });
+
+            // Try to switch to MegaETH Timothy Testnet
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: '0x18C7' }], // 6343 in Hex
+                });
+            } catch (switchError) {
+                // Network not found, add it automatically
+                if (switchError.code === 4902) {
+                    try {
+                        await window.ethereum.request({
+                            method: 'wallet_addEthereumChain',
+                            params: [{
+                                chainId: '0x18C7',
+                                chainName: 'MegaETH Timothy Testnet',
+                                nativeCurrency: {
+                                    name: 'ETH',
+                                    symbol: 'ETH',
+                                    decimals: 18
+                                },
+                                rpcUrls: ['https://timothy.megaeth.com/rpc'],
+                                blockExplorerUrls: ['https://megaeth-testnet-v2.blockscout.com']
+                            }]
+                        });
+                    } catch (addError) {
+                        console.error(addError);
+                        alert("Failed to add MegaETH network");
+                        return;
+                    }
+                } else {
+                    console.error(switchError);
+                    alert("Failed to switch network");
+                    return;
+                }
+            }
+
+            // Connect after network is switched
+            provider = new ethers.providers.Web3Provider(window.ethereum);
+            signer = provider.getSigner();
+            contract = new ethers.Contract(CONTRACT_ADDRESS, abi, signer);
+            const address = await signer.getAddress();
+            document.getElementById('connectBtn').innerText = address.slice(0,6) + "...";
+            document.getElementById('statusLog').innerText = "Connected to MegaETH Timothy";
+        } catch (error) {
+            console.error(error);
+            alert("Connection failed: " + error.message);
+        }
+    }
+
+    async function placeBet(isUp) {
+        if (!contract) return alert("Connect Wallet first!");
+        try {
+            document.getElementById('statusLog').innerText = "Sending Transaction...";
+            
+            // NOTE: High Gas Limit for Timothy
+            const tx = await contract.placeBet(isUp, { 
+                value: ethers.utils.parseEther("0.0001"),
+                gasLimit: 30000000 
+            });
+            
+            document.getElementById('statusLog').innerText = "Bet Pending...";
+            await tx.wait();
+            document.getElementById('statusLog').innerText = "Bet Placed! (Confirmed Instantly)";
+        } catch (err) {
+            console.error(err);
+            document.getElementById('statusLog').innerText = "Error: " + err.message;
+        }
+    }
+
+    async function resolveRound() {
+        if (!contract) return;
+        try {
+            // Send integer price (multiply by 10^8 like Chainlink)
+            const priceInt = Math.floor(currentPrice * 100000000);
+            
+            const tx = await contract.executeRound(priceInt, {
+                gasLimit: 30000000
+            });
+            document.getElementById('statusLog').innerText = "Resolving Round...";
+            await tx.wait();
+            
+            document.getElementById('statusLog').innerText = "Round Resolved! Starting New Round.";
+            timeLeft = 15; // Reset Timer
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    document.getElementById('connectBtn').onclick = connect;
+</script>
+
+</body>
+</html>

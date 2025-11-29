@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MegaPredict - AI Prediction Market</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            color: #fff;
+            font-family: 'SF Pro Display', -apple-system, sans-serif;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container { max-width: 800px; margin: 0 auto; }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 24px;
+            backdrop-filter: blur(20px);
+        }
+
+        .logo {
+            font-size: 3rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .tagline {
+            color: #888;
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+        }
+
+        .connect-btn {
+            padding: 14px 32px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .connect-btn:hover { transform: scale(1.05); }
+
+        /* AI Prediction Card */
+        .ai-card {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            border-radius: 24px;
+            padding: 32px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .ai-label {
+            color: #888;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 16px;
+        }
+
+        .ai-prediction {
+            font-size: 3.5rem;
+            font-weight: 900;
+            margin: 20px 0;
+            text-shadow: 0 0 40px rgba(102, 126, 234, 0.5);
+        }
+
+        .ai-prediction.up {
+            background: linear-gradient(135deg, #00ff88, #00d4ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .ai-prediction.down {
+            background: linear-gradient(135deg, #ff0055, #ff6b9d);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .ai-confidence {
+            display: inline-block;
+            padding: 8px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            font-size: 0.9rem;
+            color: #888;
+        }
+
+        .ai-confidence strong {
+            color: #fff;
+            font-weight: 700;
+        }
+
+        /* Price Display */
+        .price-section {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .price-label {
+            color: #888;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+        }
+
+        .current-price {
+            font-size: 3rem;
+            font-weight: 800;
+            color: #667eea;
+            margin-bottom: 16px;
+        }
+
+        .price-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .price-box {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 16px;
+            border-radius: 12px;
+        }
+
+        .price-box-label {
+            color: #888;
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+        }
+
+        .price-box-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
+        /* Timer */
+        .timer-section {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .round-label {
+            color: #888;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+        }
+
+        .round-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .timer-display {
+            font-size: 4rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 16px 0;
+        }
+
+        .timer-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 16px;
+        }
+
+        .timer-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 1s linear;
+        }
+
+        /* Prize Pool */
+        .prize-pool {
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.1), rgba(0, 212, 255, 0.1));
+            border: 2px solid rgba(0, 255, 136, 0.3);
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .pool-label {
+            color: #888;
+            font-size: 0.9rem;
+            margin-bottom: 12px;
+        }
+
+        .pool-amount {
+            font-size: 2.5rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, #00ff88, #00d4ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Pool Distribution */
+        .pool-distribution {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .pool-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .pool-card.follow {
+            border-color: rgba(102, 126, 234, 0.5);
+        }
+
+        .pool-card.against {
+            border-color: rgba(255, 107, 157, 0.5);
+        }
+
+        .pool-side {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .pool-side.follow { color: #667eea; }
+        .pool-side.against { color: #ff6b9d; }
+
+        .user-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #ffd700, #ffed4e);
+            color: #000;
+            font-size: 0.75rem;
+            font-weight: 900;
+            padding: 4px 12px;
+            border-radius: 12px;
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4);
+        }
+
+        .pool-value {
+            font-size: 1.4rem;
+            font-weight: 800;
+            margin-bottom: 8px;
+        }
+
+        .payout-multiplier {
+            font-size: 0.9rem;
+            color: #888;
+        }
+
+        /* Betting Buttons */
+        .betting-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .bet-btn {
+            padding: 24px;
+            border: none;
+            border-radius: 16px;
+            font-size: 1.3rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .bet-btn:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .bet-btn.follow {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .bet-btn.against {
+            background: linear-gradient(135deg, #ff0055, #ff6b9d);
+            color: white;
+        }
+
+        .bet-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Bet Input Section */
+        .bet-input-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .input-label {
+            color: #888;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+        }
+
+        .bet-input {
+            width: 100%;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            border-radius: 12px;
+            color: white;
+            font-size: 1.3rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        .bet-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .profit-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .profit-box {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .profit-label {
+            display: block;
+            font-size: 0.8rem;
+            color: #888;
+            margin-bottom: 4px;
+        }
+
+        .profit-value {
+            display: block;
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: #00ff88;
+        }
+
+        /* Status */
+        .status {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #888;
+            margin-bottom: 20px;
+        }
+
+        /* Statistics */
+        .stats-section {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 20px;
+            padding: 24px;
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stats-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: #667eea;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            border: 2px solid transparent;
+        }
+
+        .stat-card.follow {
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+
+        .stat-card.against {
+            border-color: rgba(255, 107, 157, 0.3);
+        }
+
+        .stat-card.total {
+            border-color: rgba(0, 255, 136, 0.3);
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #888;
+            margin-bottom: 12px;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 900;
+            margin-bottom: 8px;
+        }
+
+        .stat-card.follow .stat-value {
+            color: #667eea;
+        }
+
+        .stat-card.against .stat-value {
+            color: #ff6b9d;
+        }
+
+        .stat-card.total .stat-value {
+            color: #00ff88;
+        }
+
+        .stat-sublabel {
+            font-size: 0.85rem;
+            color: #aaa;
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* History */
+        .history-section {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 20px;
+            padding: 24px;
+        }
+
+        .history-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: #667eea;
+        }
+
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .history-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px 16px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 4px solid transparent;
+        }
+
+        .history-item.follow-win {
+            border-left-color: #667eea;
+        }
+
+        .history-item.against-win {
+            border-left-color: #ff6b9d;
+        }
+
+        .history-round {
+            font-size: 0.85rem;
+            color: #888;
+        }
+
+        .history-result {
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .history-result.follow {
+            color: #667eea;
+        }
+
+        .history-result.against {
+            color: #ff6b9d;
+        }
+
+        .history-price {
+            font-size: 0.85rem;
+            color: #aaa;
+        }
+
+        .history-empty {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+            font-size: 0.9rem;
+        }
+
+        .view-all-btn {
+            margin-top: 16px;
+            text-align: center;
+            padding: 12px;
+            background: rgba(102, 126, 234, 0.2);
+            border-radius: 8px;
+            color: #667eea;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .view-all-btn:hover {
+            background: rgba(102, 126, 234, 0.3);
+        }
+
+        /* Loading */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .loading {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Header -->
+    <div class="header">
+        <div class="logo">🎯 MegaPredict</div>
+        <div class="tagline">AI-Powered Prediction Market on MegaETH</div>
+        <button class="connect-btn" id="connectBtn">Connect Wallet</button>
+    </div>
+
+    <!-- AI Prediction Card -->
+    <div class="ai-card">
+        <div class="ai-label">🤖 AI PREDICTION</div>
+        <div class="ai-prediction" id="aiPrediction">
+            <span class="loading">Loading AI...</span>
+        </div>
+        <div class="ai-confidence">
+            Confidence: <strong><span id="aiConfidence">--</span>%</strong>
+        </div>
+    </div>
+
+    <!-- Price Display -->
+    <div class="price-section">
+        <div class="price-label">ETH/USDT Live Price</div>
+        <div class="current-price">$<span id="currentPrice">0.00</span></div>
+
+        <div class="price-info">
+            <div class="price-box">
+                <div class="price-box-label">Start Price</div>
+                <div class="price-box-value">$<span id="startPrice">--</span></div>
+            </div>
+            <div class="price-box">
+                <div class="price-box-label">Round #</div>
+                <div class="price-box-value"><span id="roundNumber">--</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Timer -->
+    <div class="timer-section">
+        <div class="round-label">Round Ends In</div>
+        <div class="timer-display">
+            <span id="minutesLeft">--</span>:<span id="secondsLeft">--</span>
+        </div>
+        <div class="timer-bar">
+            <div class="timer-fill" id="timerBar"></div>
+        </div>
+    </div>
+
+    <!-- Prize Pool -->
+    <div class="prize-pool">
+        <div class="pool-label">💎 TOTAL PRIZE POOL</div>
+        <div class="pool-amount"><span id="totalPool">0.000</span> ETH</div>
+    </div>
+
+    <!-- Pool Distribution -->
+    <div class="pool-distribution">
+        <div class="pool-card follow">
+            <div class="pool-side follow">🤖 FOLLOW AI</div>
+            <div id="followUserBadge" style="display: none;"><span class="user-badge">You!</span></div>
+            <div class="pool-value"><span id="followPool">0.000</span> ETH</div>
+            <div class="payout-multiplier"><span id="followMultiplier">0.00</span>x</div>
+        </div>
+        <div class="pool-card against">
+            <div class="pool-side against">⚔️ AGAINST AI</div>
+            <div id="againstUserBadge" style="display: none;"><span class="user-badge">You!</span></div>
+            <div class="pool-value"><span id="againstPool">0.000</span> ETH</div>
+            <div class="payout-multiplier"><span id="againstMultiplier">0.00</span>x</div>
+        </div>
+    </div>
+
+    <!-- Predict Amount Input -->
+    <div class="bet-input-section">
+        <div class="input-label">Prediction Amount (ETH)</div>
+        <input type="number" id="betAmount" class="bet-input" placeholder="0.001" step="0.001" min="0.0001" value="0.001">
+        <div class="profit-info">
+            <div class="profit-box">
+                <span class="profit-label">Follow AI Profit:</span>
+                <span class="profit-value" id="followProfit">+0%</span>
+            </div>
+            <div class="profit-box">
+                <span class="profit-label">Against AI Profit:</span>
+                <span class="profit-value" id="againstProfit">+0%</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Predict Buttons -->
+    <div class="betting-buttons">
+        <button class="bet-btn follow" id="followBtn" onclick="placeBet(true)">
+            🤖 FOLLOW AI
+        </button>
+        <button class="bet-btn against" id="againstBtn" onclick="placeBet(false)">
+            ⚔️ AGAINST AI
+        </button>
+    </div>
+
+    <!-- Status -->
+    <div class="status" id="status">
+        Connect your wallet to start playing
+    </div>
+
+    <!-- Statistics -->
+    <div class="stats-section">
+        <h3 class="stats-title">📈 Overall Statistics</h3>
+        <div class="stats-grid">
+            <div class="stat-card follow">
+                <div class="stat-label">🤖 Follow AI</div>
+                <div class="stat-value" id="followWinRate">0%</div>
+                <div class="stat-sublabel"><span id="followWins">0</span> Wins</div>
+            </div>
+            <div class="stat-card against">
+                <div class="stat-label">⚔️ Against AI</div>
+                <div class="stat-value" id="againstWinRate">0%</div>
+                <div class="stat-sublabel"><span id="againstWins">0</span> Wins</div>
+            </div>
+            <div class="stat-card total">
+                <div class="stat-label">Total Rounds</div>
+                <div class="stat-value" id="totalRounds">0</div>
+                <div class="stat-sublabel">Completed</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- History -->
+    <div class="history-section">
+        <h3 class="history-title">📊 Recent History (Last 10)</h3>
+        <div class="history-list" id="historyList">
+            <div class="history-empty">No history yet</div>
+        </div>
+        <div class="view-all-btn" id="viewAllBtn" onclick="toggleFullHistory()" style="display: none;">
+            View All History
+        </div>
+    </div>
+</div>
+
+<script>
+    const CONTRACT_ADDRESS = "0xf6A3DFB7D4D152AFCFfDf33504D57F9335E76875"; // AlloraPulse on Timothy Testnet
+    const API_URL = "http://localhost:3000";
+    const CHAIN_ID = 6343;
+    const BET_AMOUNT = "0.001"; // 0.001 ETH
+
+    const abi = [
+        "function placeBet(bool followAI) external payable",
+        "function startRound(int256 _startPrice, uint8 _aiPrediction, uint256 _aiConfidence) external",
+        "function resolveRound(uint256 _roundNumber, int256 _endPrice) external",
+        "function claim(uint256 _roundNumber) external",
+        "function currentRoundNumber() view returns (uint256)",
+        "function getRound(uint256) view returns (uint256 startTime, uint256 endTime, int256 startPrice, int256 endPrice, uint8 aiPrediction, uint256 aiConfidence, bool resolved, uint256 totalFollowAI, uint256 totalAgainstAI, uint256 rewardAmount)",
+        "function getPayoutMultiplier(uint256, bool) view returns (uint256)"
+    ];
+
+    let provider, signer, contract;
+    let updateInterval;
+    let allHistory = []; // Store ALL rounds
+    let showingAll = false;
+
+    // Fetch current round from API
+    async function fetchRoundData() {
+        try {
+            const res = await fetch(`${API_URL}/api/round`);
+            const data = await res.json();
+
+            // Update UI
+            document.getElementById('currentPrice').innerText = data.currentPrice?.toFixed(2) || '0.00';
+            document.getElementById('startPrice').innerText = data.startPrice?.toFixed(2) || '--';
+            document.getElementById('roundNumber').innerText = data.roundNumber || '--';
+
+            // Update timer
+            const seconds = data.secondsLeft || 0;
+            const minutes = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+
+            document.getElementById('minutesLeft').innerText = String(minutes).padStart(2, '0');
+            document.getElementById('secondsLeft').innerText = String(secs).padStart(2, '0');
+            document.getElementById('timerBar').style.width = ((seconds / 900) * 100) + '%';
+
+            // Update AI prediction
+            const aiPred = data.aiPrediction;
+            const predEl = document.getElementById('aiPrediction');
+
+            if (aiPred === 'UP') {
+                predEl.innerHTML = '↑ PRICE UP';
+                predEl.className = 'ai-prediction up';
+            } else if (aiPred === 'DOWN') {
+                predEl.innerHTML = '↓ PRICE DOWN';
+                predEl.className = 'ai-prediction down';
+            }
+
+            document.getElementById('aiConfidence').innerText = data.aiConfidence || '--';
+
+        } catch (err) {
+            console.error('Failed to fetch round data:', err);
+        }
+    }
+
+    // Fetch blockchain data
+    async function fetchContractData() {
+        if (!contract) return;
+
+        try {
+            const roundNum = await contract.currentRoundNumber();
+            const round = await contract.getRound(roundNum);
+
+            const followPool = ethers.utils.formatEther(round.totalFollowAI);
+            const againstPool = ethers.utils.formatEther(round.totalAgainstAI);
+            const total = parseFloat(followPool) + parseFloat(againstPool);
+
+            document.getElementById('followPool').innerText = parseFloat(followPool).toFixed(4);
+            document.getElementById('againstPool').innerText = parseFloat(againstPool).toFixed(4);
+            document.getElementById('totalPool').innerText = total.toFixed(4);
+
+            // Multipliers
+            const followMult = await contract.getPayoutMultiplier(roundNum, true);
+            const againstMult = await contract.getPayoutMultiplier(roundNum, false);
+
+            document.getElementById('followMultiplier').innerText = (followMult.toNumber() / 100).toFixed(2);
+            document.getElementById('againstMultiplier').innerText = (againstMult.toNumber() / 100).toFixed(2);
+
+            // Calculate profit percentages
+            calculateProfits(parseFloat(followPool), parseFloat(againstPool));
+
+        } catch (err) {
+            console.error('Error fetching contract data:', err);
+        }
+    }
+
+    // Calculate profit percentages
+    function calculateProfits(followPool, againstPool) {
+        const betAmount = parseFloat(document.getElementById('betAmount').value) || 0;
+        const totalPool = followPool + againstPool;
+        const prizePool = totalPool * 0.98; // After 2% fee
+
+        if (betAmount > 0) {
+            // Follow AI profit
+            const newFollowPool = followPool + betAmount;
+            const followPayout = (betAmount / newFollowPool) * prizePool;
+            const followProfit = ((followPayout - betAmount) / betAmount) * 100;
+
+            // Against AI profit
+            const newAgainstPool = againstPool + betAmount;
+            const againstPayout = (betAmount / newAgainstPool) * prizePool;
+            const againstProfit = ((againstPayout - betAmount) / betAmount) * 100;
+
+            document.getElementById('followProfit').innerText = '+' + followProfit.toFixed(1) + '%';
+            document.getElementById('againstProfit').innerText = '+' + againstProfit.toFixed(1) + '%';
+        } else {
+            document.getElementById('followProfit').innerText = '+0%';
+            document.getElementById('againstProfit').innerText = '+0%';
+        }
+    }
+
+    // Check if betting is allowed (not in last 1:30)
+    function isBettingAllowed() {
+        const roundData = document.getElementById('minutesLeft').innerText;
+        const minutes = parseInt(roundData.split(':')[0] || '0');
+        const seconds = parseInt(document.getElementById('secondsLeft').innerText || '0');
+        const totalSeconds = minutes * 60 + seconds;
+
+        return totalSeconds > 90; // More than 1:30 remaining
+    }
+
+    // Update button states
+    function updateButtonStates() {
+        const minutes = parseInt(document.getElementById('minutesLeft').innerText || '0');
+        const seconds = parseInt(document.getElementById('secondsLeft').innerText || '0');
+        const totalSeconds = minutes * 60 + seconds;
+        const allowed = totalSeconds > 90;
+
+        const followBtn = document.getElementById('followBtn');
+        const againstBtn = document.getElementById('againstBtn');
+
+        if (followBtn && againstBtn) {
+            followBtn.disabled = !allowed || !contract;
+            againstBtn.disabled = !allowed || !contract;
+
+            if (!allowed && totalSeconds > 0 && contract) {
+                document.getElementById('status').innerText = '⏰ Predictions closed - Less than 1:30 remaining';
+            }
+        }
+    }
+
+    // Connect Wallet
+    async function connect() {
+        if (!window.ethereum) return alert("Install MetaMask");
+
+        try {
+            await window.ethereum.request({ method: 'eth_requestAccounts' });
+
+            // Add/Switch to MegaETH
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: '0x18C7' }]
+                });
+            } catch (switchError) {
+                if (switchError.code === 4902) {
+                    await window.ethereum.request({
+                        method: 'wallet_addEthereumChain',
+                        params: [{
+                            chainId: '0x18C7',
+                            chainName: 'MegaETH Timothy Testnet',
+                            nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
+                            rpcUrls: ['https://timothy.megaeth.com/rpc'],
+                            blockExplorerUrls: ['https://megaeth-testnet-v2.blockscout.com']
+                        }]
+                    });
+                }
+            }
+
+            provider = new ethers.providers.Web3Provider(window.ethereum);
+            signer = provider.getSigner();
+            contract = new ethers.Contract(CONTRACT_ADDRESS, abi, signer);
+
+            const address = await signer.getAddress();
+            document.getElementById('connectBtn').innerText = address.slice(0, 6) + '...' + address.slice(-4);
+            document.getElementById('status').innerText = '✅ Connected! Make your prediction';
+
+            // Start fetching data
+            fetchContractData();
+            setInterval(fetchContractData, 5000);
+
+        } catch (error) {
+            console.error(error);
+            alert("Connection failed");
+        }
+    }
+
+    // Place Bet
+    async function placeBet(followAI) {
+        if (!contract) return alert("Connect wallet first!");
+
+        if (!isBettingAllowed()) {
+            alert('Predictions closed! Less than 1:30 remaining in this round.');
+            return;
+        }
+
+        const betAmount = document.getElementById('betAmount').value;
+        if (!betAmount || parseFloat(betAmount) <= 0) {
+            alert('Please enter a valid amount');
+            return;
+        }
+
+        try {
+            document.getElementById('status').innerText = '📤 Submitting prediction...';
+
+            const tx = await contract.placeBet(followAI, {
+                value: ethers.utils.parseEther(betAmount),
+                gasLimit: 30000000
+            });
+
+            document.getElementById('status').innerText = '⏳ Confirming...';
+            await tx.wait();
+
+            document.getElementById('status').innerText = `✅ Prediction submitted! ${betAmount} ETH on ${followAI ? '🤖 Follow AI' : '⚔️ Against AI'}`;
+
+            // Show "You!" badge on the side user chose
+            if (followAI) {
+                document.getElementById('followUserBadge').style.display = 'block';
+                document.getElementById('againstUserBadge').style.display = 'none';
+            } else {
+                document.getElementById('followUserBadge').style.display = 'none';
+                document.getElementById('againstUserBadge').style.display = 'block';
+            }
+
+            await fetchContractData();
+
+        } catch (err) {
+            console.error(err);
+            document.getElementById('status').innerText = '❌ Error: ' + err.message.split('(')[0];
+        }
+    }
+
+    // Load round history and statistics
+    async function loadHistory() {
+        try {
+            // Mock history - in production, fetch from API or contract events
+            // This would be ALL historical rounds
+            allHistory = [
+                { round: 15, winner: 'follow', startPrice: 3025.11, endPrice: 3031.22 },
+                { round: 14, winner: 'against', startPrice: 3018.45, endPrice: 3015.12 },
+                { round: 13, winner: 'follow', startPrice: 3012.88, endPrice: 3020.44 },
+                { round: 12, winner: 'follow', startPrice: 3008.22, endPrice: 3014.55 },
+                { round: 11, winner: 'against', startPrice: 3015.67, endPrice: 3010.33 },
+                { round: 10, winner: 'follow', startPrice: 3009.11, endPrice: 3016.88 },
+                { round: 9, winner: 'against', startPrice: 3020.55, endPrice: 3018.22 },
+                { round: 8, winner: 'follow', startPrice: 3012.33, endPrice: 3019.77 },
+                { round: 7, winner: 'follow', startPrice: 3005.88, endPrice: 3011.44 },
+                { round: 6, winner: 'against', startPrice: 3016.22, endPrice: 3012.55 },
+                { round: 5, winner: 'follow', startPrice: 3005.21, endPrice: 3012.45 },
+                { round: 4, winner: 'against', startPrice: 2998.12, endPrice: 2995.33 },
+                { round: 3, winner: 'follow', startPrice: 2985.67, endPrice: 2992.11 },
+                { round: 2, winner: 'against', startPrice: 3010.88, endPrice: 3008.22 },
+                { round: 1, winner: 'follow', startPrice: 2995.44, endPrice: 3001.76 }
+            ];
+
+            updateStatistics();
+            displayHistory(showingAll ? allHistory : allHistory.slice(0, 10));
+
+        } catch (err) {
+            console.error('Error loading history:', err);
+        }
+    }
+
+    // Update statistics display
+    function updateStatistics() {
+        if (allHistory.length === 0) {
+            document.getElementById('followWinRate').innerText = '0%';
+            document.getElementById('againstWinRate').innerText = '0%';
+            document.getElementById('totalRounds').innerText = '0';
+            document.getElementById('followWins').innerText = '0';
+            document.getElementById('againstWins').innerText = '0';
+            return;
+        }
+
+        const followWins = allHistory.filter(r => r.winner === 'follow').length;
+        const againstWins = allHistory.filter(r => r.winner === 'against').length;
+        const total = allHistory.length;
+
+        const followWinRate = ((followWins / total) * 100).toFixed(1);
+        const againstWinRate = ((againstWins / total) * 100).toFixed(1);
+
+        document.getElementById('followWinRate').innerText = followWinRate + '%';
+        document.getElementById('againstWinRate').innerText = againstWinRate + '%';
+        document.getElementById('totalRounds').innerText = total;
+        document.getElementById('followWins').innerText = followWins;
+        document.getElementById('againstWins').innerText = againstWins;
+    }
+
+    // Display history items
+    function displayHistory(historyToShow) {
+        const historyList = document.getElementById('historyList');
+        historyList.innerHTML = '';
+
+        if (historyToShow.length === 0) {
+            historyList.innerHTML = '<div class="history-empty">No history yet</div>';
+            return;
+        }
+
+        historyToShow.forEach(item => {
+            const div = document.createElement('div');
+            div.className = `history-item ${item.winner}-win`;
+
+            const priceChange = item.endPrice - item.startPrice;
+            const direction = priceChange >= 0 ? '↑' : '↓';
+
+            div.innerHTML = `
+                <div>
+                    <div class="history-round">Round #${item.round}</div>
+                    <div class="history-price">${direction} $${item.startPrice.toFixed(2)} → $${item.endPrice.toFixed(2)}</div>
+                </div>
+                <div class="history-result ${item.winner}">
+                    ${item.winner === 'follow' ? '🤖 Follow AI Won' : '⚔️ Against AI Won'}
+                </div>
+            `;
+
+            historyList.appendChild(div);
+        });
+
+        // Show "View All" button if there are more than 10 rounds
+        const viewAllBtn = document.getElementById('viewAllBtn');
+        if (allHistory.length > 10) {
+            viewAllBtn.style.display = 'block';
+            viewAllBtn.innerText = showingAll ? 'Show Recent Only' : `View All ${allHistory.length} Rounds`;
+        } else {
+            viewAllBtn.style.display = 'none';
+        }
+    }
+
+    // Toggle between showing all history or just last 10
+    function toggleFullHistory() {
+        showingAll = !showingAll;
+        displayHistory(showingAll ? allHistory : allHistory.slice(0, 10));
+    }
+
+    // Initialize
+    document.getElementById('connectBtn').onclick = connect;
+
+    // Update profit when bet amount changes
+    document.getElementById('betAmount').addEventListener('input', () => {
+        if (contract) {
+            fetchContractData();
+        }
+    });
+
+    // Load history on startup
+    loadHistory();
+
+    // Fetch round data every 2 seconds
+    fetchRoundData();
+    setInterval(fetchRoundData, 2000);
+
+    // Update button states every second
+    setInterval(updateButtonStates, 1000);
+</script>
+
+</body>
+</html>
